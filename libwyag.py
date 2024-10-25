@@ -1,4 +1,6 @@
 # tutorial from https://wyag.thb.lt/
+# need to figure out how to install Ubuntu on machine again
+# https://docs.python.org/3/library/grp.html
 import argparse
 import collections
 import configparser
@@ -10,7 +12,7 @@ from math import ceil
 import os
 import re
 import sys
-import zlib
+import zlib 
 
 # https://docs.python.org/3/library/argparse.html
 argparser = argparse.ArgumentParser(description="Silly tracker")
@@ -37,12 +39,14 @@ def main(argv=sys.argv[1:]):
         case "status"       : cmd_status(args)
         case "tag"          : cmd_tag(args)
         case _              : print("Bad command.")
-
+        
 # abstractions
 
 # creating new repo object: 2 checks
     # must verify that the directory exists, and contains subdirectory .git
     # read its configuration in .git/config (INI file) and control that core.repositoryformatversion is 0
+
+# disclaimer: this repo object holds two paths --> worktree and the gitdir
 class GitRepository(object):
 
     worktree = None
@@ -135,3 +139,41 @@ def repo_default_config():
 
 
     return ret
+
+# init command
+argsp = argsubparsers.add_parser("init", help="Initialize a new, empty repository.")
+
+argsp.add_argument("path",
+                   metavar="directory",
+                   nargs="?",
+                   default=".",
+                   help="Where to create the repository.")
+
+# bridge function to read argument values from the object returned by argparse and call actual function with correct values
+def cmd_init(args):
+    repo_create(args.path)
+
+
+# repo_find() function
+def repo_find(path=".", required=True):
+    path = os.path.realpath(path)
+
+    if os.path.isdir(os.path.join(path, ".git")):
+        return GitRepository(path)
+
+    parent = os.path.realpath(os.path.join(path, ".."))
+    if parent == path:
+
+        # bottom case
+        # os.path.join("/", "..") == "/":
+        # if parent==path, then path is root
+        if required:
+            raise Exception("No git directory.")
+
+        else:
+            return None
+    
+    # recursive case
+    return repo_find(parent, required)
+
+# hashing
